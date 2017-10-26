@@ -51,7 +51,7 @@ public class TokenFilter implements Filter {
 	private static long limitMinute;
 	private static String baseUrl;
 	private static Boolean isNotice;
-	private static String runContainer;
+//	private static String runContainer;
 	private static String containerPort;
 
 	protected static Log log = LogFactory.get();
@@ -116,6 +116,7 @@ public class TokenFilter implements Filter {
 				if (httpRequest.getServerPort()!=80) domain+=":"+httpRequest.getServerPort();*/
 				RequestUtil.addCookie(httpResponse, CommonConstant.TOKEN_PARAM_NAME, accessToken/*,domain*/, 24*60*60);
 				httpResponse.setContentType(contentType);
+				//允许跨域
 				httpResponse.setHeader("Access-Control-Allow-Origin", "*");
 				httpResponse.getWriter().write(JSON.toJSONString(CommonResponse.success(null)));
 				return;
@@ -228,7 +229,7 @@ public class TokenFilter implements Filter {
 		if (isNotice) {
 			containerPort = filterConfig.getInitParameter("server.port");
 			if (StringUtils.isBlank(containerPort)) {
-				log.error("containerPort为空!");
+				log.error("server.port为空");
 				return;
 			}
 			/*runContainer = filterConfig.getInitParameter("ua.runContainer");
@@ -255,7 +256,6 @@ public class TokenFilter implements Filter {
 
 	        CloseableHttpClient httpCilent = HttpClients.createDefault();
 			try {
-				
 				String url = baseUrl + "/token/online?ip="+host+"&port=" + containerPort + "&contextPath="
 						+ context.getContextPath();
 				HttpGet httpget = new HttpGet(url);
@@ -272,8 +272,5 @@ public class TokenFilter implements Filter {
 			}
 		}
 
-		// MemcacheUtil.getInstance(CommonConstant.memcachedServer).set(key,
-		// value)
 	}
-
 }
