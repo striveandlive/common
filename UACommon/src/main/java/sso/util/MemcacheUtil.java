@@ -1,7 +1,5 @@
-package ua.util;
+package sso.util;
 
-import java.io.FileInputStream;
-import java.net.URL;
 import java.util.Date;
 import java.util.Properties;
 
@@ -11,7 +9,7 @@ import com.whalin.MemCached.SockIOPool;
 public class MemcacheUtil {
 	private static MemCachedClient client = new MemCachedClient();
 	private static String MEMCACHE_CONFIG = "/memcached.properties";
-	private static URL url;
+//	private static URL url;
 	private static MemcacheUtil cache;
 	private static String server;
 
@@ -20,11 +18,13 @@ public class MemcacheUtil {
 	}
 
 	private MemcacheUtil(String path) {
-		url = getClass().getResource(path);
-		System.out.println("url:" + path + url);
+//		url = getClass().getResource(path);
+//		System.out.println("url:" + path + url);
 		Properties config = new Properties();
 		try {
-			config.load(new FileInputStream(url.getPath()));
+			/*URL fileURL=this.getClass().getResource(url.getPath()); 
+	        System.out.println(fileURL.getFile());*/
+			config.load(getClass().getResourceAsStream(path));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -91,6 +91,11 @@ public class MemcacheUtil {
 	public boolean set(String key, Object value) {
 		return client.set(key, value);
 	}
+	
+	public boolean set(String key, Object value, long expiryTime) {
+		long now = new Date().getTime();
+		return client.set(key, value, new Date(now + expiryTime));
+	}
 
 	public boolean replace(String key, Object value) {
 		return client.replace(key, value);
@@ -102,6 +107,10 @@ public class MemcacheUtil {
 
 	public boolean delete(String key) {
 		return client.delete(key);
+	}
+	
+	public boolean keyExists(String key) {
+		return client.keyExists(key);
 	}
 
 	/**

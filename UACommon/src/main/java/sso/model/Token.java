@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package ua.model;
+package sso.model;
 
 import java.io.Serializable;
 import java.util.Date;

@@ -1,4 +1,4 @@
-package ua.common;
+package sso.common;
 
 import java.util.Collections;
 import java.util.Enumeration;

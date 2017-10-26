@@ -1,4 +1,4 @@
-package ua.common;
+package sso.common;
 
 public class CommonResponse {
 
@@ -51,7 +51,6 @@ public class CommonResponse {
 	
 	public static CommonResponse failTokenNotExists() {
 		CommonResponse commonResponse = new CommonResponse();
-
 		commonResponse.setCode("10002");
 		commonResponse.setMsg("令牌不存在");
 
@@ -65,6 +64,20 @@ public class CommonResponse {
 
 		commonResponse.setCode("10003");
 		commonResponse.setMsg("令牌过期");
+
+		return commonResponse;
+	}
+	
+	public static CommonResponse failTokenExpires(String referUrl) {
+		CommonResponse commonResponse = failTokenExpires();
+		commonResponse.setReferUrl(referUrl);
+		return commonResponse;
+	}
+	
+	public static CommonResponse failNoAccess() {
+		CommonResponse commonResponse = new CommonResponse();
+		commonResponse.setCode(CommonConstant.CODE_NO_ACCESS);
+		commonResponse.setMsg("无权限");
 
 		return commonResponse;
 	}

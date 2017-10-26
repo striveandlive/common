@@ -1,4 +1,4 @@
-package ua.util;
+package sso.util;
 
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -15,29 +15,56 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.commons.codec.binary.Base64;
-
 import com.alibaba.fastjson.JSON;
 
 
 public class AESUtil {
 	public static String encode(String encryptSecret, Map<String, Object> paraMap) throws UnsupportedEncodingException {
-		/*AES aes = SecureUtil.aes(encryptSecret.getBytes("UTF-8"));
-
-		return Base64.encodeBase64String(aes.encrypt(JSON.toJSONString(paraMap), "UTF-8"));*/
-
-		return Base64.encodeBase64String(encryptAES(JSON.toJSONString(paraMap), encryptSecret));
+		
+		return parseByte2HexStr(encryptAES(JSON.toJSONString(paraMap), encryptSecret));
+	}
+	
+	public static String encode(String encryptSecret,String content) throws UnsupportedEncodingException {
+		
+		return parseByte2HexStr(encryptAES(content, encryptSecret));
 	}
 
 	public static Map decode(String encryptSecret, String token) throws Exception {
-//		AES aes = SecureUtil.aes(encryptSecret.getBytes("UTF-8"));
-//		String jsonString = null;
 
-		String jsonString = new String(decryptAES(Base64.decodeBase64(token),encryptSecret));
-
-		return JSON.parseObject(jsonString, Map.class);
+		return JSON.parseObject(decodeForString(encryptSecret, token), Map.class);
 
 	}
+	
+	public static String decodeForString(String encryptSecret, String token) throws Exception {
+
+		return new String(decryptAES(parseHexStr2Byte(token),encryptSecret));
+
+	}
+	
+	/** 
+	 * 校验和 
+	 *  
+	 * @param msg 需要计算校验和的byte数组 
+	 * @param length 校验和位数 
+	 * @return 计算出的校验和数组 
+	*/  
+	public static byte[] SumCheck(byte[] msg, int length) {  
+	    long mSum = 0;  
+	    byte[] mByte = new byte[length];  
+	          
+	    /** 逐Byte添加位数和 */  
+	    for (byte byteMsg : msg) {  
+	        long mNum = ((long)byteMsg >= 0) ? (long)byteMsg : ((long)byteMsg + 256);  
+	        mSum += mNum;  
+	    } /** end of for (byte byteMsg : msg) */  
+	          
+	    /** 位数和转化为Byte数组 */  
+	    for (int liv_Count = 0; liv_Count < length; liv_Count++) {  
+	        mByte[length - liv_Count - 1] = (byte)(mSum >> (liv_Count * 8) & 0xff);  
+	    } /** end of for (int liv_Count = 0; liv_Count < length; liv_Count++) */  
+	          
+	    return mByte;  
+	}  
 
 	/**
 	 * 加密
@@ -109,6 +136,46 @@ public class AESUtil {
 		}
 		return null;
 	}
+	
+	/** 
+     * 将二进制转换成16进制 
+     * @method parseByte2HexStr 
+     * @param buf 
+     * @return 
+     * @throws  
+     * @since v1.0 
+     */  
+    public static String parseByte2HexStr(byte buf[]){  
+        StringBuffer sb = new StringBuffer();  
+        for(int i = 0; i < buf.length; i++){  
+            String hex = Integer.toHexString(buf[i] & 0xFF);  
+            if (hex.length() == 1) {  
+                hex = '0' + hex;  
+            }  
+            sb.append(hex.toUpperCase());  
+        }  
+        return sb.toString();  
+    }  
+      
+    /** 
+     * 将16进制转换为二进制 
+     * @method parseHexStr2Byte 
+     * @param hexStr 
+     * @return 
+     * @throws  
+     * @since v1.0 
+     */  
+    public static byte[] parseHexStr2Byte(String hexStr){  
+        if(hexStr.length() < 1)  
+            return null;  
+        byte[] result = new byte[hexStr.length()/2];  
+        for (int i = 0;i< hexStr.length()/2; i++) {  
+            int high = Integer.parseInt(hexStr.substring(i*2, i*2+1), 16);  
+            int low = Integer.parseInt(hexStr.substring(i*2+1, i*2+2), 16);  
+            result[i] = (byte) (high * 16 + low);  
+        }  
+        return result;  
+    }  
 
 	public static void main(String[] args) throws Exception {
 		// byte[] key =
