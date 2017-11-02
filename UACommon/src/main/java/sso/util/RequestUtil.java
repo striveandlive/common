@@ -80,6 +80,20 @@ public class RequestUtil {
 			}
 		}
 	}
+	
+	public static void printAllCookie(HttpServletRequest request) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies != null && cookies.length > 0) {
+			int i =0;
+			for (Cookie c : cookies) {
+				++i;
+				String cName = c.getName();
+				String cValue = c.getValue();
+				System.out.println(i+":"+cName+"="+cValue);
+			}
+		}
+		
+	}
 
 	public static String urlEncode(Object param) throws UnsupportedEncodingException {
 		param = param == null ? "" : param;

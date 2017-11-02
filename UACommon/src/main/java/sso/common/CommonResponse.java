@@ -12,48 +12,39 @@ public class CommonResponse {
 
 	public static CommonResponse fail() {
 		CommonResponse commonResponse = new CommonResponse();
-
 		commonResponse.setCode("0");
 		commonResponse.setMsg("操作失败");
 		commonResponse.setData(null);
-
 		return commonResponse;
 	}
 
 	public static CommonResponse fail(String msg) {
 		CommonResponse commonResponse = new CommonResponse();
-
 		commonResponse.setCode("0");
 		commonResponse.setMsg(msg);
 		commonResponse.setData(null);
-
 		return commonResponse;
 	}
 	
 	public static CommonResponse fail(Object data) {
 		CommonResponse commonResponse = new CommonResponse();
-
 		commonResponse.setCode("0");
 		commonResponse.setMsg("操作失败");
 		commonResponse.setData(data);
-
 		return commonResponse;
 	}
 	
 	public static CommonResponse failTokenIsBlank() {
 		CommonResponse commonResponse = new CommonResponse();
-
-		commonResponse.setCode("10001");
+		commonResponse.setCode(CommonConstant.CODE_TOKEN_IS_BLANK);
 		commonResponse.setMsg("令牌为空");
-
 		return commonResponse;
 	}
 	
 	public static CommonResponse failTokenNotExists() {
 		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("10002");
+		commonResponse.setCode(CommonConstant.CODE_TOKEN_NOT_EXIST);
 		commonResponse.setMsg("令牌不存在");
-
 		return commonResponse;
 	}
 	
@@ -61,10 +52,8 @@ public class CommonResponse {
 	
 	public static CommonResponse failTokenExpires() {
 		CommonResponse commonResponse = new CommonResponse();
-
-		commonResponse.setCode("10003");
+		commonResponse.setCode(CommonConstant.CODE_TOKEN_EXPIRES);
 		commonResponse.setMsg("令牌过期");
-
 		return commonResponse;
 	}
 	
@@ -78,16 +67,22 @@ public class CommonResponse {
 		CommonResponse commonResponse = new CommonResponse();
 		commonResponse.setCode(CommonConstant.CODE_NO_ACCESS);
 		commonResponse.setMsg("无权限");
-
 		return commonResponse;
 	}
 
 	public static CommonResponse success(Object data) {
 		CommonResponse commonResponse = new CommonResponse();
-
 		commonResponse.setCode("1");
 		commonResponse.setMsg("操作成功");
 		commonResponse.setData(data);
+		return commonResponse;
+	}
+	
+	public static CommonResponse success() {
+		CommonResponse commonResponse = new CommonResponse();
+		commonResponse.setCode("1");
+		commonResponse.setMsg("操作成功");
+		commonResponse.setData(null);
 		return commonResponse;
 	}
 

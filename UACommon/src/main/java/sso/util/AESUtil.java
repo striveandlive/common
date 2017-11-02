@@ -78,7 +78,10 @@ public class AESUtil {
 	public static byte[] encryptAES(String content, String password) {
 		try {
 			KeyGenerator kgen = KeyGenerator.getInstance("AES");
-			kgen.init(128, new SecureRandom(password.getBytes()));
+			SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG" );
+	        secureRandom.setSeed(password.getBytes());
+			kgen.init(128, secureRandom);
+			
 			SecretKey secretKey = kgen.generateKey();
 			byte[] enCodeFormat = secretKey.getEncoded();
 			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
@@ -115,8 +118,12 @@ public class AESUtil {
 	public static byte[] decryptAES(byte[] content, String password) {
 		try {
 			KeyGenerator kgen = KeyGenerator.getInstance("AES");
-			kgen.init(128, new SecureRandom(password.getBytes()));
+			SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG" );
+	        secureRandom.setSeed(password.getBytes());
+			kgen.init(128, secureRandom);
+
 			SecretKey secretKey = kgen.generateKey();
+			
 			byte[] enCodeFormat = secretKey.getEncoded();
 			SecretKeySpec key = new SecretKeySpec(enCodeFormat, "AES");
 			Cipher cipher = Cipher.getInstance("AES");// 创建密码器
@@ -184,6 +191,7 @@ public class AESUtil {
 		Map paraMap = new HashMap();
 
 		paraMap.put("id", "ksjdhfknsf");
+		paraMap.put("name", "ksh98hefinef");
 		String result = encode(key, paraMap);
 		// String result =
 		// "mUpXYaSLK+6+TTys4kAftrKdSU15S/AJ1wonr7MuaVFol1OV6Ol7HkKcaO26zvo7J2w0NwaV6dLC";//
