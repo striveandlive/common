@@ -11,16 +11,12 @@ public class CommonResponse {
 	private String referUrl;
 
 	public static CommonResponse fail() {
-		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("0");
-		commonResponse.setMsg("操作失败");
-		commonResponse.setData(null);
-		return commonResponse;
+		return fail(null);
 	}
 
 	public static CommonResponse fail(String msg) {
 		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("0");
+		commonResponse.setCode(CommonConstant.CODE_FAIL);
 		commonResponse.setMsg(msg);
 		commonResponse.setData(null);
 		return commonResponse;
@@ -28,7 +24,7 @@ public class CommonResponse {
 	
 	public static CommonResponse fail(Object data) {
 		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("0");
+		commonResponse.setCode(CommonConstant.CODE_FAIL);
 		commonResponse.setMsg("操作失败");
 		commonResponse.setData(data);
 		return commonResponse;
@@ -72,18 +68,14 @@ public class CommonResponse {
 
 	public static CommonResponse success(Object data) {
 		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("1");
+		commonResponse.setCode(CommonConstant.CODE_SUCCESS);
 		commonResponse.setMsg("操作成功");
 		commonResponse.setData(data);
 		return commonResponse;
 	}
 	
 	public static CommonResponse success() {
-		CommonResponse commonResponse = new CommonResponse();
-		commonResponse.setCode("1");
-		commonResponse.setMsg("操作成功");
-		commonResponse.setData(null);
-		return commonResponse;
+		return success(null);
 	}
 
 	public static CommonResponse build(String code, String msg, Object data, String referUrl) {

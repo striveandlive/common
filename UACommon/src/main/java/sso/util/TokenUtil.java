@@ -14,10 +14,9 @@ public class TokenUtil {
 	 * @param uri
 	 * @return
 	 */
-	public static boolean validAuth(String accessToken, String uri) {
+	public static boolean validUri(String accessToken, String uri) {
 		Object obj = MemcacheUtil.getInstance(CommonConstant.memcachedServer)
 				.get(CommonConstant.CACHE_AUTHORITY_PREFIX + accessToken);
-
 		if (obj != null) {
 				Map map = (Map) obj;
 				Object authData = map.get(CommonConstant.AUTH_PARAM_NAME);

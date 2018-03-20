@@ -1,7 +1,7 @@
 package sso.filter;
 
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
@@ -23,6 +23,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.xiaoleilu.hutool.log.Log;
 import com.xiaoleilu.hutool.log.LogFactory;
 
@@ -37,16 +38,11 @@ import sso.util.RequestUtil;
 import sso.util.TokenUtil;
 
 /**
- * accessToken过滤器 
- * 1. 不传accessToken参数 直接返回：10001 无令牌 
- * 2. 找不到accessToken 直接返回：10002 令牌错误 
- * 3. 找到accessToken 
- * 3.1 超过过期时间 直接返回：10003 令牌过期 
- * 3.2 没超过过期时间
- * a)判断过期时间与当前时间相隔小于15分钟，此时令牌过期时间增加二小时 
- * b)通过
+ * 令牌过滤器 1. 不传accessToken参数 直接返回：10001 无令牌 2. 找不到accessToken 直接返回：10002 令牌错误 3.
+ * 找到accessToken 3.1 超过过期时间 直接返回：10003 令牌过期 3.2 没超过过期时间
+ * a)判断过期时间与当前时间相隔小于15分钟，此时令牌过期时间增加二小时 b)通过
  * 
- * @author ruby
+ * @author KO
  *
  */
 public class TokenFilter implements Filter {
@@ -55,6 +51,7 @@ public class TokenFilter implements Filter {
 	 * 未活动分钟数
 	 */
 	private static long limitMinute;
+	// private static long extendMinute;
 	private static String baseUrl;
 	private static Boolean isNotice;
 	// private static String runContainer;
@@ -73,7 +70,7 @@ public class TokenFilter implements Filter {
 		// 告知主控下线
 		if (isNotice) {
 			if (StringUtils.isBlank(containerPort)) {
-				log.error("server.port为空");
+				log.error("app.port为空");
 				return;
 			}
 			String host = "";
@@ -84,8 +81,8 @@ public class TokenFilter implements Filter {
 			}
 			CloseableHttpClient httpCilent = HttpClients.createDefault();
 			try {
-				String url = baseUrl + "/token/offline?ip=" + host + "&port=" + containerPort + "&contextPath="
-						+ contextPath;
+				String url = baseUrl + "token/" + CommonConstant.URI_OFFLINE + "?ip=" + host + "&port=" + containerPort
+						+ "&contextPath=" + contextPath;
 				HttpGet httpget = new HttpGet(url);
 
 				httpCilent.execute(httpget);
@@ -99,20 +96,25 @@ public class TokenFilter implements Filter {
 				}
 			}
 		}
-
+		// memcached.server
 	}
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-		log.info("令牌过滤器……");
+//		log.info("令牌过滤器……");
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		boolean isExcludedUri = false;
+		String sPath = httpRequest.getServletPath();
+//		log.info("baseUrl==>"+baseUrl);
+		/*if (sPath.contains("/nulllogin/")){
+			log.info("==>888"+sPath);
+			isExcludedUri = true;
+		}*/
 		if (excludedUriArray != null)
 			for (String uri : excludedUriArray) {// 遍历例外url数组
 				// 判断当前URL是否与例外页面相同
-				if (httpRequest.getServletPath()
-						.startsWith(uri)/* .equals(uri) */) { // 从第2个字符开始取（把前面的/去掉）
+				if (sPath.startsWith(uri)/* .equals(uri) */) { // 从第2个字符开始取（把前面的/去掉）
 					isExcludedUri = true;
 					break;
 				}
@@ -136,41 +138,42 @@ public class TokenFilter implements Filter {
 			 * response.getWriter().write(JSON.toJSONString(app)); return; }
 			 */
 
-			// 从请求头取
+			// 1.从请求头取
 			String accessToken = httpRequest.getHeader(CommonConstant.TOKEN_PARAM_NAME);
-
+			// 2.从参数取
 			if (StringUtils.isBlank(accessToken)) {
-				// 从参数取
 				accessToken = httpRequest.getParameter(CommonConstant.TOKEN_PARAM_NAME);
 			}
+			// 3.从cookie取
 			if (StringUtils.isBlank(accessToken)) {
-				// 从cookie取
-//				log.info("path:{}",httpRequest.getServletPath());
-//				RequestUtil.printAllCookie(httpRequest);
+				// log.info("path:{}",httpRequest.getServletPath());
+				// RequestUtil.printAllCookie(httpRequest);
 				accessToken = RequestUtil.getCookie(httpRequest, CommonConstant.TOKEN_PARAM_NAME);
 			}
 			log.info("accessToken:{}", accessToken);
 			// for cross domain cookie config
-			if (StringUtils.isNotBlank(accessToken) && httpRequest.getServletPath().equalsIgnoreCase("/_ssoConfig")) {
+			if (StringUtils.isNotBlank(accessToken)
+					&& sPath.equals("/" + CommonConstant.URI_SSO_CONFIG)) {
 				// 允许跨域
 				httpResponse.setHeader("Access-Control-Allow-Origin", "*");
 				httpResponse.setHeader("Access-Control-ALLOW-Credentials", "true");
-				httpResponse.setHeader("P3P","CP=CAO PSA OUR");
+				httpResponse.setHeader("P3P", "CP=CAO PSA OUR");
 				String domain = httpRequest.getLocalAddr();
 				/*
 				 * if (httpRequest.getLocalPort()!=80){
 				 * domain+=":"+httpRequest.getLocalPort(); }
 				 */
-				
+
 				log.info("设置跨域cookie=>domain:{} accessToken:{}", domain, accessToken);
 				RequestUtil.addCookie(httpResponse, CommonConstant.TOKEN_PARAM_NAME, accessToken, domain, 24 * 60 * 60);
 				httpResponse.setContentType(contentType);
 				httpResponse.getWriter().write(JSON.toJSONString(CommonResponse.success(null)));
-				/*String callback = httpRequest.getParameter("callback"); 
-				String jsoncallback = callback + "({'result':'success'})"; 
-				PrintWriter out = httpResponse.getWriter();
-				out.print(jsoncallback);
-				out.close();*/
+				/*
+				 * String callback = httpRequest.getParameter("callback");
+				 * String jsoncallback = callback + "({'result':'success'})";
+				 * PrintWriter out = httpResponse.getWriter();
+				 * out.print(jsoncallback); out.close();
+				 */
 				return;
 			}
 
@@ -180,23 +183,21 @@ public class TokenFilter implements Filter {
 				 * response.getWriter().write(JSON.toJSONString(CommonResponse.
 				 * failTokenIsBlank()));
 				 */
-//				log.info("come on……1");
-				httpResponse.setStatus(301);
-				httpResponse.setHeader("Location",
-						baseUrl + "login?return=" + RequestUtil.urlEncode(CommonResponse.failTokenIsBlank()));
-				httpResponse.setHeader("Connection", "close");
+				// log.info("come on……1");
+				log.info("==>1"+sPath);
+				gotoLogin(httpRequest,httpResponse,CommonResponse.failTokenNotExists());
+				
 				return;
 			} else {
-				
+
 				Map<String, Object> tokenMap = AESUtil.decode(encryptSecret, accessToken);
-//				log.info("tokenInfo:{}",JSON.toJSONString(tokenMap));
+				// log.info("tokenInfo:{}",JSON.toJSONString(tokenMap));
 				if (tokenMap != null && tokenMap.get(CommonConstant.TOKEN_PARAM_EXPIRE) != null) {
-					
-					Object obj = MemcacheUtil.getInstance(CommonConstant.memcachedServer)
+					Object obj = MemcacheUtil.getInstance()
 							.get(CommonConstant.CACHE_TOKEN_PREFIX + accessToken);
-					
-//					log.info("memcached:{}",JSON.toJSONString(obj));
-//					MemcacheUtil.getAllKeys(MemcacheUtil.getCacheClient());
+
+					// log.info("memcached:{}",JSON.toJSONString(obj));
+					// MemcacheUtil.getAllKeys(MemcacheUtil.getCacheClient());
 					if (obj != null) {
 						Token result = (Token) obj;
 						Date now = new Date();
@@ -206,9 +207,9 @@ public class TokenFilter implements Filter {
 							long diffTime = eTime.getTime() - now.getTime();
 							// 当前距离过期十五分钟内
 							if (diffTime <= (limitMinute * 60 * 1000)) {
-								// 过期时间增加
-								String delayExpireUrl = baseUrl + "/delayExpire?" + CommonConstant.TOKEN_PARAM_NAME
-										+ "=" + accessToken;
+								// 增加过期时间
+								String delayExpireUrl = baseUrl  + CommonConstant.URI_DELAY_EXPIRE + "?"
+										+ CommonConstant.TOKEN_PARAM_NAME + "=" + accessToken;
 								PoolHttpClientUtil.getInstance().poolHttpGet(delayExpireUrl);
 							}
 						} else {
@@ -216,46 +217,71 @@ public class TokenFilter implements Filter {
 							// response.getWriter().write(JSON.toJSONString(CommonResponse.failTokenExpires(baseUrl
 							// + "/login")));
 							
-							httpResponse.setStatus(301);
-							httpResponse.setHeader("Location", baseUrl + "login?return="
-									+ RequestUtil.urlEncode(CommonResponse.failTokenExpires()));
-							httpResponse.setHeader("Connection", "close");
+							gotoLogin(httpRequest,httpResponse,CommonResponse.failTokenExpires());
 							return;
 						}
 						String uri = httpRequest.getRequestURI();
 						uri = uri.replaceFirst(httpRequest.getContextPath(), "");
-						if (TokenUtil.validAuth(accessToken, uri)) {
-							WritableHttpServletRequest wr = new WritableHttpServletRequest(httpRequest);
-							// 强制设置到请求头
+
+						if (sPath.equalsIgnoreCase("/" + CommonConstant.URI_VALID_URI)) {
+							if (TokenUtil.validUri(accessToken, uri)) {
+								httpResponse.setContentType(contentType);
+								httpResponse.getWriter().write(JSON.toJSONString(CommonResponse.success(null)));
+								return;
+							}
+						}
+
+						String validUri = baseUrl  + CommonConstant.URI_VALID_URI + "?"
+								+ CommonConstant.TOKEN_PARAM_NAME + "=" + accessToken + "&uri=" + uri;
+						String content = PoolHttpClientUtil.getInstance().poolHttpGet(validUri);
+						JSONObject jo = JSON.parseObject(content);
+						if (CommonConstant.CODE_SUCCESS.equals(jo.getString("code"))) {
+							WritableHttpServletRequest wr = new WritableHttpServletRequest(httpRequest); // 强制设置到请求头
 							wr.addHeader(CommonConstant.TOKEN_PARAM_NAME, accessToken);
 							chain.doFilter(wr, response);
 							return;
-						} else {
-							response.setContentType(contentType);
-							response.getWriter().write(JSON.toJSONString(CommonResponse.failNoAccess()));
-							return;
 						}
+						// 可扩展
+						/*
+						 * if (TokenUtil.validUri(accessToken, uri)) {
+						 * WritableHttpServletRequest wr = new
+						 * WritableHttpServletRequest(httpRequest); // 强制设置到请求头
+						 * wr.addHeader(CommonConstant.TOKEN_PARAM_NAME,
+						 * accessToken); chain.doFilter(wr, response); return; }
+						 * else {
+						 */
+						httpResponse.setContentType(contentType);
+						httpResponse.getWriter().write(JSON.toJSONString(CommonResponse.failNoAccess()));
+						return;
+						// }
 
 					}
 				}
 				// response.setContentType(contentType);
 				// response.getWriter().write(JSON.toJSONString(CommonResponse.failTokenNotExists()));
-//				log.info("come on……2");
-				httpResponse.setStatus(301);
-				httpResponse.setHeader("Location",
-						baseUrl + "login?return=" + RequestUtil.urlEncode(CommonResponse.failTokenNotExists()));
-				httpResponse.setHeader("Connection", "close");
+				// log.info("come on……2");
+				log.info("==>2"+sPath);
+//				gotoLogin(httpRequest,httpResponse,CommonResponse.failTokenNotExists());
+				
 				return;
 
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
-
-			response.setContentType(contentType);
-			response.getWriter().write(JSON.toJSONString(CommonResponse.fail(ex.getMessage())));
-
+			httpResponse.setContentType(contentType);
+			httpResponse.getWriter().write(JSON.toJSONString(CommonResponse.fail(ex.getMessage())));
 			return;
 		}
+	}
+
+	public void gotoLogin(HttpServletRequest httpRequest, HttpServletResponse httpResponse, CommonResponse cr)
+			throws UnsupportedEncodingException {
+		httpResponse.setStatus(301);
+		cr.setReferUrl(httpRequest.getRequestURL().toString());
+		String referUrl = baseUrl + "login?return=" + RequestUtil.urlEncode(cr);
+		log.info("跳转登录页：" + referUrl);
+		httpResponse.setHeader("Location", referUrl);
+		httpResponse.setHeader("Connection", "close");
 	}
 
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -265,24 +291,33 @@ public class TokenFilter implements Filter {
 		if (StringUtils.isNotBlank(temp)) {
 			limitMinute = Long.valueOf(temp);
 		} else {
-			limitMinute = 15;
+			limitMinute = 15;// 默认
 		}
+		/*
+		 * temp = filterConfig.getInitParameter("ua.extendMinute"); if
+		 * (StringUtils.isNotBlank(temp)) { extendMinute = Long.valueOf(temp); }
+		 * else { extendMinute = 24*60; }
+		 */
+
 		baseUrl = filterConfig.getInitParameter("ua.baseUrl");
-		CommonConstant.memcachedServer = filterConfig.getInitParameter("memcached.server");
-		excludedUris = filterConfig.getInitParameter("EXCLUDED_URIS");
+		/*
+		 * CommonConstant.memcachedServer =
+		 * filterConfig.getInitParameter("ua.cacheServer");
+		 */
+		excludedUris = filterConfig.getInitParameter("ua.excludedUris");
 		if (StringUtils.isNotBlank(excludedUris)) { // 例外页面不为空
 			excludedUriArray = excludedUris.split(";");
 		}
 
 		String notice = filterConfig.getInitParameter("ua.isNotice");
-		isNotice = true;
+		isNotice = false;
 		if (StringUtils.isNotBlank(notice)) {
 			isNotice = Boolean.valueOf(notice);
 		}
 		if (isNotice) {
-			containerPort = filterConfig.getInitParameter("server.port");
+			containerPort = filterConfig.getInitParameter("app.port");
 			if (StringUtils.isBlank(containerPort)) {
-				log.error("server.port为空");
+				log.error("app.port为空");
 				return;
 			}
 			/*
@@ -300,13 +335,13 @@ public class TokenFilter implements Filter {
 			try {
 				containerIp = InetAddress.getLocalHost().getHostAddress();
 			} catch (UnknownHostException e) {
-				log.error("get server host Exception e:", e);
+				log.error("取ip错误", e);
 			}
 			contextPath = context.getContextPath();
 			CloseableHttpClient httpCilent = HttpClients.createDefault();
 			try {
-				String url = baseUrl + "/token/online?ip=" + containerIp + "&port=" + containerPort + "&contextPath="
-						+ contextPath;
+				String url = baseUrl + "token/" + CommonConstant.URI_ONLINE + "?ip=" + containerIp + "&port="
+						+ containerPort + "&contextPath=" + contextPath;
 				HttpGet httpget = new HttpGet(url);
 				httpCilent.execute(httpget);
 			} catch (Exception ex) {

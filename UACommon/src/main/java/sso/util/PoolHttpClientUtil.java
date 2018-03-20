@@ -2,7 +2,6 @@ package sso.util;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.util.Properties;
 
 import org.apache.http.HttpHost;
 import org.apache.http.client.config.RequestConfig;
@@ -30,7 +29,7 @@ import com.xiaoleilu.hutool.log.Log;
 import com.xiaoleilu.hutool.log.LogFactory;
 
 public class PoolHttpClientUtil {
-	private static Log LOGGER = LogFactory.get();
+	private static Log log = LogFactory.get();
 	// 日志
 	// private static final SimpleLogger LOGGER =
 	// SimpleLogger.getLogger(PoolHttpsClientService.class);
@@ -120,7 +119,7 @@ public class PoolHttpClientUtil {
 						cm.setMaxTotal(MAX_CONNECTION_NUM);
 						cm.setDefaultMaxPerRoute(MAX_PER_ROUTE);
 					} catch (Exception e) {
-						LOGGER.error(methodName, "init PoolingHttpClientConnectionManager Error" + e);
+						log.error(methodName, "init PoolingHttpClientConnectionManager Error" + e);
 					}
 
 				}
@@ -186,6 +185,8 @@ public class PoolHttpClientUtil {
 		// 超时或者网络不通时返回值
 		return null;
 	}
+	
+	
 
 	/**
 	 * Https post请求
@@ -221,11 +222,11 @@ public class PoolHttpClientUtil {
 				httpPost.setEntity(se);
 			}
 
-			LOGGER.info(methodName, "start post to weixin");
+			log.info(methodName, "start post to weixin");
 			response = getHttpsClient(requestConfig).execute(httpPost);
-			LOGGER.info(methodName, "end post to weixin");
+			log.info(methodName, "end post to weixin");
 			int status = response.getStatusLine().getStatusCode();
-			LOGGER.info(methodName, "return status:" + status);
+			log.info(methodName, "return status:" + status);
 
 			String result = null;
 			if (status == 200) {
@@ -237,12 +238,12 @@ public class PoolHttpClientUtil {
 		} catch (Exception e) {
 			if (e instanceof SocketTimeoutException) {
 				// 服务器请求超时
-				LOGGER.error(methodName, "server request time out");
+				log.error(methodName, "server request time out");
 			} else if (e instanceof ConnectTimeoutException) {
 				// 服务器响应超时(已经请求了)
-				LOGGER.error(methodName, "server response time out");
+				log.error(methodName, "server response time out");
 			}
-			LOGGER.error(methodName, e.getMessage());
+			log.error(methodName, e.getMessage());
 		} finally {
 
 			httpPost.releaseConnection();
@@ -251,7 +252,7 @@ public class PoolHttpClientUtil {
 					EntityUtils.consume(response.getEntity());
 					response.close();
 				} catch (IOException e) {
-					LOGGER.error(methodName, e.getMessage());
+					log.error(methodName, e.getMessage());
 				}
 			}
 		}
